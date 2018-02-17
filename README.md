@@ -42,3 +42,8 @@ Just a unifinished attempt to reimplement *enigma* in game.
 ### mandelbrot fractal
 
 Just an implementation of the *mandelbrot fractal*
+
+
+### astar2
+
+Just another implementation of the *astar algorithm*

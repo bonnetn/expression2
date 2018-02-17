@@ -1,0 +1,163 @@
+@name h4x0r_e2
+@inputs [Start End]:vector
+@outputs Phase
+@persist CELL_SIZE
+@persist Phase PHASE_IDLE PHASE_LOOKING_FOR_LOWEST_COST PHASE_ADD_ADJACENTS PHASE_LOOKBACK
+@persist Index LowestCost LowestNode ADJACENTS:array CurrentNode:array CurrentNodePos:vector Path:array
+@persist Mask16 Mask32
+@persist [S E]:vector [Open Closed]:table [Lookup]:array IndexHolo StartTime
+@trigger 
+
+if(first()) {
+    CELL_SIZE = 32
+    
+
+    function setPhase_lookForLowestCost() {
+        Phase = PHASE_LOOKING_FOR_LOWEST_COST
+        Index = 1
+        local V = Open[1,array]
+        LowestCost = V[3,number] + V[4,number]
+        LowestNode = 1
+    }
+    
+    function setPhase_addAdjacents( C:array ) {
+        Phase = PHASE_ADD_ADJACENTS
+        Index = 1
+        CurrentNode = C
+        CurrentNodePos = C[1,vector]
+    }
+    
+    function setPhase_lookback(End:array) {
+        Phase = PHASE_LOOKBACK
+    
+        Path = End
+    }
+    
+    function vector fromGridToWorld(Pos:vector) {
+        return (vec(0.5,0.5,0.5)+Pos)*CELL_SIZE
+    }
+    
+    function entity holoCell(I, Pos:vector) {
+        local PosW = fromGridToWorld(Pos)
+        local H = holoCreate(I,PosW)
+        holoScaleUnits(I,vec(CELL_SIZE))
+        holoAng(I,ang())
+        holoMaterial(I,"models/wireframe")
+        return H
+    }
+    
+    function number getUniqueID( V:vector ) {
+        return hash(V:x()+";"+V:y()+";"+V:z())
+    }
+    
+    function number manhattan(A:vector, B:vector) {
+        local C = A-B
+        return (abs(C:x()) + abs(C:y()) + abs(C:z()))*2
+    }
+    
+    ADJACENTS = array(vec(-1,0,0),vec(0,1,0),vec(1,0,0),vec(0,-1,0),vec(0,0,1),vec(0,0,-1))
+    
+    runOnTick(1)
+    
+    PHASE_IDLE = 0
+    PHASE_LOOKING_FOR_LOWEST_COST = 1
+    PHASE_ADD_ADJACENTS = 2
+    PHASE_LOOKBACK = 3
+    
+    
+    StartTime = curtime()
+    
+    S = floor(Start/CELL_SIZE)
+    E = floor(End/CELL_SIZE)
+
+    
+    Open = table( array(S, S, 0, 0) )
+    Lookup[getUniqueID(S),number] = -1
+    Closed = table()
+    
+    holoCell(1,vec())
+    holoColor(1,vec(0,0,255))
+    
+ 
+    
+    setPhase_lookForLowestCost()
+  
+    IndexHolo=4
+    
+    rangerPersist(1)
+        
+   
+}
+elseif(tickClk()) {
+    while(perf(100)) {
+        
+        if(Phase == PHASE_LOOKING_FOR_LOWEST_COST) {
+            local V = Open[Index,array]
+            Cost = V[3,number] + V[4,number]
+            if(Cost < LowestCost) {
+                LowestCost = Cost
+                LowestNode = Index
+            }
+            
+            Index++
+            if(Index > Open:count()) {
+                local V = Open[LowestNode,array]
+                Open:remove(LowestNode)
+                Closed:pushArray(V)
+                
+                local PosW = fromGridToWorld(V[1,vector])
+                holoPos(1,PosW)
+                Lookup[getUniqueID(V[1,vector]),number] = Closed:count()
+                
+                setPhase_addAdjacents( V )
+            }
+        }
+        if(Phase == PHASE_ADD_ADJACENTS) {
+            local Cell = ADJACENTS[Index, vector] + CurrentNodePos
+            
+            if((Cell - E):length() == 0) {
+                setPhase_lookback(array(Cell, CurrentNode[1,vector], CurrentNode[3,number]+1, manhattan(Cell, E) ))
+                print("Found the path in " + (curtime()-StartTime)*1000 + "ms.")
+            } else {
+                local CellID = getUniqueID(Cell)
+                if(!Lookup[CellID,number]) {
+                    Lookup[CellID,number] = -1
+                    
+                    local P = fromGridToWorld(Cell)
+                    local RD = rangerOffsetHull(P, P, vec(CELL_SIZE))
+                    
+                    if(!RD:hit() ) {
+                        Open:pushArray(array(Cell, CurrentNode[1,vector], CurrentNode[3,number]+1, manhattan(Cell, E) ))
+                    }
+                }
+                
+                
+                Index++
+                if(Index > ADJACENTS:count()) {
+                    setPhase_lookForLowestCost()
+                }
+            }
+        }
+        if(Phase == PHASE_LOOKBACK) {
+            IndexHolo++
+            local H = holoCell(IndexHolo, Path[1,vector])
+            
+            if(H:isValid()) {
+                Path = Closed[Lookup[getUniqueID(Path[2,vector]),number],array]
+                if(Path[1,vector] == Path[2,vector]) {
+                    Phase = PHASE_IDLE 
+                    
+                    IndexHolo++
+                    holoCell(IndexHolo, Path[1,vector])
+                    
+                    print("DONE.")
+                    runOnTick(0)
+                }
+                
+            } else {
+                IndexHolo--
+            }
+        }
+    }
+}
+
