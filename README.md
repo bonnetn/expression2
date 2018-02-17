@@ -29,3 +29,8 @@ suspension. In order to do that, it uses *FFT*.
 
 This script is just a game of connect 4 with an elegant way to check for
 solution in O(1).
+
+### crypto
+
+This is just a reimplementation of the *Diffie–Hellman key exchange* with
+*exponentiation by squaring*.

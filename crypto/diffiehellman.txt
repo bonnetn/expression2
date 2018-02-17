@@ -1,0 +1,47 @@
+@name DiffieHellman
+@persist MODULUS BASE 
+@persist DH_CalculatingKey
+@persist SecretKey PublicKey SharedKeys:array
+
+MODULUS = 3581117
+BASE = 2
+
+#include "libs/pow_lib"
+
+function setPublicKey(Key, ExtraArgs:table ) {
+    PublicKey = Key
+    ExtraArgs["Callback", string](ExtraArgs["ExtraArgs", table])
+}
+
+function initDiffieHellman( Callback:string, ExtraArgs:table ) {
+    SecretKey = randint(MODULUS)
+        
+    local Args = table()
+    Args["Callback", string] = Callback
+    Args["ExtraArgs", table] = ExtraArgs
+    
+    pow("setPublicKey", Args, BASE, SecretKey, MODULUS )        
+}
+
+function getSharedKey2( SharedKey, ExtraArgs:table ) {
+    local PublicKey = ExtraArgs["PublicKey", number]
+    local Callback = ExtraArgs["Callback", string]
+    local ExtraArgs2 = ExtraArgs["ExtraArgs", table]
+    
+    SharedKeys[PublicKey, number] = SharedKey
+    
+    Callback(SharedKey, ExtraArgs2)
+}
+
+function getSharedKey( PublicKey, Callback:string, ExtraArgs:table ) {
+    if(SharedKeys[PublicKey, number]) {
+        Callback( SharedKeys[PublicKey, number], ExtraArgs )
+    } else {
+        local Args = table()
+        Args["PublicKey", number] = PublicKey
+        Args["Callback", string] = Callback
+        Args["ExtraArgs", table] = ExtraArgs
+        
+        pow("getSharedKey2", Args, PublicKey, SecretKey, MODULUS )
+    }
+}

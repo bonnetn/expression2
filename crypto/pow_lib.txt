@@ -1,0 +1,48 @@
+@persist PowLib
+@persist Pow_A Pow_N Pow_Base Pow_Callback:string Pow_Status Pow_Next:table Pow_Mod Pow_ExtraArgs:table
+
+function doNextPow() {
+    if(Pow_Next:count() == 0) {
+        Pow_Status = 0
+    } else {
+        Pow_Status = 1
+        A = Pow_Next[1,table]
+        Pow_Next:shift()
+        
+        Pow_A = A[2,number]
+        Pow_Base = A[2,number]
+        
+        Pow_N = A[3,number]
+        Pow_Callback =A[1,string]
+        Pow_Mod = A[4, number]
+        Pow_ExtraArgs = A[5,table]
+        
+    }
+    
+}
+
+function pow( Callback:string, ExtraArgs:table, A, N, Mod ) {
+    Pow_Next:pushTable(table(Callback,A,N,Mod,ExtraArgs))
+    if(!Pow_Status) {
+        doNextPow()
+    }
+}
+
+function loopPow() {
+    if(Pow_Status) {
+        
+        if(Pow_N % 2 == 0) {
+            Pow_A = (Pow_A^2)%Pow_Mod
+            Pow_N /= 2
+        }
+        else {
+            Pow_A = (Pow_A * Pow_Base) % Pow_Mod
+            Pow_N--
+        }
+        
+        if(Pow_N == 0) {
+            Pow_Callback(Pow_A, Pow_ExtraArgs)
+            doNextPow()
+        }
+    }
+}
