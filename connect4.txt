@@ -1,0 +1,298 @@
+@name Puissance4
+@inputs 
+@outputs PosX PosY Phase:string
+@persist Phase:string SPACE
+@persist GridPos:vector GridAngle:angle IndexHolo
+@persist Player1Grid:array Player2Grid:array GridHeight:array 
+@persist Player1:entity Player2:entity 
+@model models/props_borealis/bluebarrel001.mdl 
+
+if(first()) {
+    SPACE = 50
+    
+    runOnTick(1)
+    GridPos = entity():pos() + vec(0,0,100)
+    GridAngle = entity():angles()+ang(-90,90,90)
+    Phase = "grid_spawn"
+
+    
+    function array getPlayerPosOnScreen(Ply:entity) {
+        
+        local VecX = (toWorld(vec(0,1,0),ang(),GridPos,GridAngle)-GridPos):normalized()
+        local VecY = (toWorld(vec(1,0,0),ang(),GridPos,GridAngle)-GridPos):normalized()
+        
+        local N = GridAngle:up()
+        local Eye = Ply:eye()
+        local ShootPos = Ply:shootPos()
+        
+        local T = (GridPos-ShootPos):dot(N)/Eye:dot(N)  
+        local Pos = ShootPos + T*Eye
+        local PG = Pos-GridPos
+        
+        local PosX = int( PG:dot(VecX) / SPACE + 0.5 ) + 1
+        local PosY = int( PG:dot(VecY) / SPACE + 0.5 ) + 1
+        
+        return array(PosX, PosY)
+        
+    }
+    
+    function array b64And(Arr:array, Arr2:array) {
+        local A = Arr[1,number]
+        local B = Arr[2,number]
+        local C = Arr2[1,number]
+        local D = Arr2[2,number]
+        return array(bAnd(A,C), bAnd(B,D))
+    }
+    
+    function array b64Or(Arr:array, Arr2:array) {
+        local A = Arr[1,number]
+        local B = Arr[2,number]
+        local C = Arr2[1,number]
+        local D = Arr2[2,number]
+        return array(bOr(A,C), bOr(B,D))
+    }
+    
+    
+    function array b64Not(Arr:array) {
+        local A = Arr[1,number]
+        local B = Arr[2,number]
+    
+        return array(bNot(A,31), bNot(B,31))
+    }
+    
+    function number b64IsNull(Arr:array) {
+        return Arr[1,number]==0 & Arr[2,number]==0
+    }
+    
+    function array b64Shr(Arr:array,N) {
+        local A = Arr[1,number]
+        local B = Arr[2,number]
+        
+        local Masque = 2^N - 1
+        local LastPart = bAnd(A, Masque)
+    
+        B = bOr(bShr(B,N), bShl(LastPart, 32-N))
+        A = bShr(A,N)
+        return array(A,B)
+    }
+    
+    function array setBit(N) {
+        if(N < 32) {
+            return array(0,bShl(1,N))
+        }
+        else {
+            return array(bShl(1,N-32),0)
+        }
+    }
+    
+    function array setGrid(X,Y, Arr:array) {
+        local X = X-1
+        local Y = Y-1
+        
+        Index = Y + X * 8
+        return b64Or(Arr, setBit(Index))
+
+    }
+    
+    function array clrGrid(X,Y, Arr:array) {
+        local X = X-1
+        local Y = Y-1
+        
+        Index = Y + X * 8
+        return b64And(Arr, b64Not(setBit(Index)))
+
+    }
+    
+    function number getGrid(X,Y,Arr:array) {
+        local X = X-1
+        local Y = Y-1
+        Index = Y + X * 8
+        return !b64IsNull(b64And(setBit(Index),Arr))
+    }
+    
+    #http://stackoverflow.com/questions/7044670/how-to-determine-game-end-in-tic-tac-toe/7046415#7046415
+    function number haswon(Grid:array) {
+        Y = b64And( Grid, b64Shr(Grid, 7))
+        if( !b64IsNull(b64And( Y, b64Shr(Y, 2 * 7))) ) { # check \ diagonal
+            return 1
+        }
+        
+        Y = b64And( Grid, b64Shr(Grid, 8))
+        if( !b64IsNull(b64And(Y, b64Shr(Y, 2 * 8))) ) { # check horizontal -
+            return 1
+        }
+        
+        Y = b64And( Grid, b64Shr(Grid, 9))
+        if ( !b64IsNull(b64And(Y, b64Shr(Y, 2 * 9))) ) { # check / diagonal
+            return 1
+        }
+        
+        Y = b64And( Grid, b64Shr(Grid, 1))
+        if ( !b64IsNull(b64And(Y, b64Shr(Y, 2))) ) {    # check vertical |
+            return 1
+        }
+        return 0
+    }
+    
+    holoCreate(100,toWorld(vec(5,6,-0.1)*SPACE/2, ang(),GridPos,GridAngle))
+    holoAng(100,GridAngle)
+    holoModel(100, "plane")
+    holoScaleUnits(100,vec(SPACE*6.5,SPACE*7.5,1))
+    holoColor(100,vec(25))
+    #holoParent(100,entity())
+    holoDisableShading(100,1)
+    
+    holoCreate(101,toWorld(vec(5,0,-0.05)*SPACE/2, ang(),GridPos,GridAngle))
+    holoAng(101,GridAngle)
+    holoModel(101, "plane")
+    holoScaleUnits(101,vec(SPACE*6,SPACE,1))
+    #holoParent(101,entity())
+    holoAlpha(101,0)
+    holoDisableShading(101,1)
+    
+    
+
+   
+}
+elseif(tickClk()) {
+    if(Phase == "grid_spawn") {
+        for(X=1,6) {
+            for(Y=1,7) {
+                IndexHolo++
+                holoCreate(IndexHolo, toWorld(vec(X-1,Y-1,0)*SPACE,ang(),GridPos,GridAngle))
+                holoScaleUnits(IndexHolo, vec(SPACE*0.9,SPACE*0.9,0.01))
+                holoAng(IndexHolo, GridAngle)
+                holoModel(IndexHolo, "hq_cylinder")
+                #holoParent(IndexHolo, entity())
+                holoColor(IndexHolo,vec(200))
+                holoDisableShading(IndexHolo,1)
+                
+                
+            }
+        }
+        Phase = "looking_for_player1"
+        #Phase = "play1"
+        #Player1 = owner()
+        #Player2 = owner()
+    }
+    elseif(Phase == "looking_for_player1" | Phase == "looking_for_player2")  {
+        
+        local VecX = (toWorld(vec(0,1,0)*SPACE,ang(),GridPos,GridAngle)-GridPos):normalized()
+        local VecY = (toWorld(vec(1,0,0)*SPACE,ang(),GridPos,GridAngle)-GridPos):normalized()
+        local N = GridAngle:up()
+        
+        
+        local Players = players()
+        for(I=1, Players:count()) {
+            local Ply = Players[I,entity]
+            
+            if(Phase == "looking_for_player2" & Ply == Player1) {
+                continue
+            }
+            
+            if(Ply:keyUse() ) {
+            
+                local T = (GridPos-Ply:shootPos()):dot(N)/Ply:eye():dot(N)
+                local Pos = Ply:shootPos() + T*Ply:eye()
+                
+                PosX = int( (Pos-GridPos):dot(VecX) / SPACE + 0.5 ) + 1
+                PosY = int( (Pos-GridPos):dot(VecY) / SPACE + 0.5 ) + 1
+                
+                if( inrange(PosX,1,6) & inrange(PosY,1,7)) {
+                    
+                    if(Phase == "looking_for_player1") {
+                        concmd("say [Connect4] "+Ply:name()+" joined as red")
+                        Phase = "looking_for_player2"
+                        Player1 = Ply
+                    } else {
+                        concmd("say [Connect4] "+Ply:name()+" joined as blue")
+                        concmd("say [Connect4] "+Ply:name()+" begins.")
+                        Phase = "play1"
+                        Player2 = Ply
+                    }
+                }
+            }
+            
+        }
+    }
+    elseif((Phase == "play1" | Phase == "play2")) {
+        
+        # KeyUse changed verifcation
+        local Changed = 0
+        if(changed(Player1:keyUse()) & Phase == "play1" ) {
+            Changed = 1
+        }
+        if(changed(Player2:keyUse()) & Phase == "play2" ) {
+            Changed = 1
+        }
+        
+        # Set the correct entity for the player 
+        local Ply = noentity()
+        if(Phase == "play1") {
+            Ply = Player1
+        }
+        else {
+            Ply = Player2
+        }
+        
+        # Get the aim Pos
+        local Pos = getPlayerPosOnScreen(Ply)
+        local PosX = Pos[1,number]
+        local PosY = Pos[1,number]
+        
+        # Set the pos of the ghost
+        holoPos(101,toWorld(vec(5,(clamp(PosX,1,7)-1)*2,-0.05)*SPACE/2, ang(),GridPos,GridAngle))
+        if(Phase == "play1") {
+            holoColor(101, vec4(255,0,0,50))
+        } else {
+            holoColor(101, vec4(0,0,255,50))
+        }
+    
+        # Play
+        if(Ply:keyUse() & Changed ) {
+
+            
+            local H = GridHeight[PosX,number]
+            
+            if(H != 6) {
+                           
+                GridHeight[PosX,number] = GridHeight[PosX,number] + 1
+                H++
+        
+                if(Phase == "play1") {
+                    Player1Grid = setGrid(PosX, H,Player1Grid)
+                    holoColor(7*(H-1)+PosX, vec(255,0,0))
+                    Phase = "play2"
+                    if(haswon(Player1Grid)) {
+                        concmd("say [Connect4] "+Player1:name()+" wins !")
+                        Phase = "idle"
+                        holoAlpha(101,0)
+                    }
+                } else {
+                    Player2Grid = setGrid(PosX, H,Player2Grid)
+                    holoColor(7*(H-1)+PosX, vec(0,0,255))
+                    Phase = "play1"
+                    if(haswon(Player2Grid)) {
+                        concmd("say [Connect4] "+Player2:name()+" wins !")
+                        Phase = "idle"
+                        holoAlpha(101,0)
+                    }
+                }
+                
+             
+            }
+            
+            
+            
+        }
+        
+
+        
+        
+        
+        
+        
+        
+    }
+    
+}

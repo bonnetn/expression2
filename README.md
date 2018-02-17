@@ -25,4 +25,7 @@ This script takes a car, stimulate it, and then plot the Bode diagram of its
 suspension. In order to do that, it uses *FFT*.
 
 
+### connect 4
 
+This script is just a game of connect 4 with an elegant way to check for
+solution in O(1).
