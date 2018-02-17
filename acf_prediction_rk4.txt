@@ -1,0 +1,146 @@
+@name 
+@inputs ACF:entity Target:vector
+@outputs Phase:string TickCnt Pourcent
+@persist AngleSimulatedCannon Precision DeltaTick Y:matrix2 TickCnt NumberOfTicksToBeSimulated
+@persist Tick ACF_VelScale ACF_DragDiv ACF_PhysMaxVel Gravity Phase:string
+@persist BulletData_Caliber BulletData_FrAera BulletData_DragCoef ACFMuzzleVel ACFProjMass
+@persist Trajectory:table TargetX TargetY
+@trigger 
+
+Pourcent = round((AngleSimulatedCannon - 45)/45*100)
+
+if(first())
+{
+    
+    Tick = tickInterval()    
+    ACF_VelScale = 1
+    ACF_DragDiv = acfDragDiv()
+    ACF_PhysMaxVel = 4000
+    Gravity = gravity()
+    
+    
+    
+    function loadVariables()
+    {
+        
+        ACFMuzzleVel = ACF:acfMuzzleVel()
+        ACFProjMass = ACF:acfProjectileMass()
+        
+        BulletData_Caliber = ACF:acfCaliber()/10 #TODO
+        BulletData_FrAera = 3.1416 * (BulletData_Caliber/2)^2
+        BulletData_DragCoef = ((BulletData_FrAera/10000)/ACFProjMass)
+    }
+    
+    function changeSimulationAngle(Angle)
+    {
+        AngleSimulatedCannon = Angle
+        Y = matrix2() 
+        Y = Y:setRow(2, vec2(cos(Angle),sin(Angle))* ACFMuzzleVel * ACF_VelScale * 39.37)
+        Trajectory = table()
+        TickCnt = 0
+        Trajectory[Angle+"_X",array] = array()
+        Trajectory[Angle+"_Y",array] = array()
+         
+    }
+    
+    
+    function startSimulation(P,D,N)
+    {
+        runOnTick(1)
+        Phase = "Calculating"
+        Precision = P
+        DeltaTick = D
+        NumberOfTicksToBeSimulated = N
+        changeSimulationAngle(45)
+        
+    }
+        
+    function matrix2 bulletFly(Y:matrix2)
+    {
+        Y = Y:swapRows()
+        local Speed = Y:row(1)
+        local Drag = Speed * (BulletData_DragCoef * Speed:length()) / ACF_DragDiv
+        Y = Y:setRow(2, vec2(0,-Gravity)-Drag)
+        return Y
+        
+    }
+    
+    function matrix2 rk4(Y:matrix2,Dt)
+    {
+        K1 = bulletFly(Y)    
+        K2 = bulletFly(Y+K1*Dt/2)
+        K3 = bulletFly(Y+K2*Dt/2)
+        K4 = bulletFly(Y+K3*Dt)
+        return Y + (K1+2*K2+2*K3+K4)*Dt/6
+    }
+    
+
+    
+    
+    loadVariables()
+    startSimulation(0.1,10,50)
+}
+elseif(tickClk())
+{
+    
+    if(Phase == "Calculating") 
+    {
+        while(perf())
+        {
+            TickCnt++
+            if(TickCnt > NumberOfTicksToBeSimulated) 
+            {
+
+                TickCnt = 0
+                if(AngleSimulatedCannon+Precision <= 90)
+                {
+                    changeSimulationAngle(AngleSimulatedCannon+Precision)
+                }
+                else
+                {
+                    Phase = "PreAim"
+                    break
+                }
+                
+            }
+            
+            Y = rk4(Y,Tick * DeltaTick )
+            if(Y:row(2):y() > 0)
+            {
+                TickCnt--
+            }
+            else
+            {
+                local P = Y:row(1)
+                Trajectory[AngleSimulatedCannon+"_X",array]:pushNumber(P:x())
+                Trajectory[AngleSimulatedCannon+"_Y",array]:pushNumber(P:y())
+                
+            }
+            if(AngleSimulatedCannon == 46 & Y:row(2):y() < 0 )
+            {
+                
+                holoCreate(TickCnt, entity():pos() + vec(-Y:row(1):x(),0,Y:row(1):y()))
+                holoColor(TickCnt,vec(255,0,0))
+            }
+
+            
+        }
+    }
+    elseif(Phase == "PreAim")
+    {
+        local UY = vec(0,0,1)
+        local UX = (Target-ACF:pos()):setZ(0):normalized()
+        
+        TargetX = Target:dot(UX)
+        TargetY = Target:dot(UY)
+        
+        Phase = "Aiming"
+    }
+    elseif(Phase == "Brent1")
+    {
+        local FA = 
+        
+    }
+    
+}
+
