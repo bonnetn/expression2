@@ -1,0 +1,139 @@
+@name Enigma
+@inputs 
+@outputs MsgCoded:string
+@persist Rotor:array RotorInv:table Msg2Code:string Phase Char Lol W1 W2 W3 Wheels:string Code:string Scramble:string SwitchTbl:array IndexScramble Msg2CodeScrambled:string MsgCodedScrambled:string
+@trigger 
+
+
+if(first()) {
+    Rotor[1, string] = "EKMFLGDQVZNTOWYHXUSPAIBRCJ"
+    Rotor[2, string] = "AJDKSIRUXBLHWTMCQGZNPYFVOE"
+    Rotor[3, string] = "BDFHJLCPRTXVZNYEIWGAKMUSQO"
+    Rotor[4, string] = "ESOVPZJAYQUIRHXLNFTGKDCMWB"
+    Rotor[5, string] = "VZBRGITYUPSDNHLXAWMJQOFECK"
+    Rotor[6, string] = "QYHOGNECVPUZTFDJAXWMKISRBL"
+    
+    RotorInv[1, array] = array("UWYGADFPVZBECKMTHXSLRINQOJ","TVXFZCEOUYADBJLSGWRKQHMPNI","SUWEYBDNTXZCAIKRFVQJPGLOMH","RTVDXACMSWYBZHJQEUPIOFKNLG","QSUCWZBLRVXAYGIPDTOHNEJMKF","PRTBVYAKQUWZXFHOCSNGMDILJE","OQSAUXZJPTVYWEGNBRMFLCHKID","NPRZTWYIOSUXVDFMAQLEKBGJHC","MOQYSVXHNRTWUCELZPKDJAFIGB","LNPXRUWGMQSVTBDKYOJCIZEHFA","KMOWQTVFLPRUSACJXNIBHYDGEZ","JLNVPSUEKOQTRZBIWMHAGXCFDY","IKMUORTDJNPSQYAHVLGZFWBECX","HJLTNQSCIMORPXZGUKFYEVADBW","GIKSMPRBHLNQOWYFTJEXDUZCAV","FHJRLOQAGKMPNVXESIDWCTYBZU","EGIQKNPZFJLOMUWDRHCVBSXAYT","DFHPJMOYEIKNLTVCQGBUARWZXS","CEGOILNXDHJMKSUBPFATZQVYWR","BDFNHKMWCGILJRTAOEZSYPUXVQ","ACEMGJLVBFHKIQSZNDYRXOTWUP","ZBDLFIKUAEGJHPRYMCXQWNSVTO","YACKEHJTZDFIGOQXLBWPVMRUSN","XZBJDGISYCEHFNPWKAVOULQTRM","WYAICFHRXBDGEMOVJZUNTKPSQL","VXZHBEGQWACFDLNUIYTMSJORPK")
+    RotorInv[2, array] = array("AJPCZWRLFBDKOTYUQGENHXMIVS","ZIOBYVQKEACJNSXTPFDMGWLHUR","YHNAXUPJDZBIMRWSOECLFVKGTQ","XGMZWTOICYAHLQVRNDBKEUJFSP","WFLYVSNHBXZGKPUQMCAJDTIERO","VEKXURMGAWYFJOTPLBZICSHDQN","UDJWTQLFZVXEINSOKAYHBRGCPM","TCIVSPKEYUWDHMRNJZXGAQFBOL","SBHUROJDXTVCGLQMIYWFZPEANK","RAGTQNICWSUBFKPLHXVEYODZMJ","QZFSPMHBVRTAEJOKGWUDXNCYLI","PYEROLGAUQSZDINJFVTCWMBXKH","OXDQNKFZTPRYCHMIEUSBVLAWJG","NWCPMJEYSOQXBGLHDTRAUKZVIF","MVBOLIDXRNPWAFKGCSQZTJYUHE","LUANKHCWQMOVZEJFBRPYSIXTGD","KTZMJGBVPLNUYDIEAQOXRHWSFC","JSYLIFAUOKMTXCHDZPNWQGVREB","IRXKHEZTNJLSWBGCYOMVPFUQDA","HQWJGDYSMIKRVAFBXNLUOETPCZ","GPVIFCXRLHJQUZEAWMKTNDSOBY","FOUHEBWQKGIPTYDZVLJSMCRNAX","ENTGDAVPJFHOSXCYUKIRLBQMZW","DMSFCZUOIEGNRWBXTJHQKAPLYV","CLREBYTNHDFMQVAWSIGPJZOKXU","BKQDAXSMGCELPUZVRHFOIYNJWT")
+    RotorInv[3, array] = array("TAGBPCSDQEUFVNZHYIXJWLRKOM","SZFAOBRCPDTEUMYGXHWIVKQJNL","RYEZNAQBOCSDTLXFWGVHUJPIMK","QXDYMZPANBRCSKWEVFUGTIOHLJ","PWCXLYOZMAQBRJVDUETFSHNGKI","OVBWKXNYLZPAQIUCTDSERGMFJH","NUAVJWMXKYOZPHTBSCRDQFLEIG","MTZUIVLWJXNYOGSARBQCPEKDHF","LSYTHUKVIWMXNFRZQAPBODJCGE","KRXSGTJUHVLWMEQYPZOANCIBFD","JQWRFSITGUKVLDPXOYNZMBHAEC","IPVQERHSFTJUKCOWNXMYLAGZDB","HOUPDQGRESITJBNVMWLXKZFYCA","GNTOCPFQDRHSIAMULVKWJYEXBZ","FMSNBOEPCQGRHZLTKUJVIXDWAY","ELRMANDOBPFQGYKSJTIUHWCVZX","DKQLZMCNAOEPFXJRISHTGVBUYW","CJPKYLBMZNDOEWIQHRGSFUATXV","BIOJXKALYMCNDVHPGQFRETZSWU","AHNIWJZKXLBMCUGOFPEQDSYRVT","ZGMHVIYJWKALBTFNEODPCRXQUS","YFLGUHXIVJZKASEMDNCOBQWPTR","XEKFTGWHUIYJZRDLCMBNAPVOSQ","WDJESFVGTHXIYQCKBLAMZOUNRP","VCIDREUFSGWHXPBJAKZLYNTMQO","UBHCQDTERFVGWOAIZJYKXMSLPN")
+    RotorInv[4, array] = array("HZWVARTNLGUPXQCEJMBSKDYOIF","GYVUZQSMKFTOWPBDILARJCXNHE","FXUTYPRLJESNVOACHKZQIBWMGD","EWTSXOQKIDRMUNZBGJYPHAVLFC","DVSRWNPJHCQLTMYAFIXOGZUKEB","CURQVMOIGBPKSLXZEHWNFYTJDA","BTQPULNHFAOJRKWYDGVMEXSICZ","ASPOTKMGEZNIQJVXCFULDWRHBY","ZRONSJLFDYMHPIUWBETKCVQGAX","YQNMRIKECXLGOHTVADSJBUPFZW","XPMLQHJDBWKFNGSUZCRIATOEYV","WOLKPGICAVJEMFRTYBQHZSNDXU","VNKJOFHBZUIDLEQSXAPGYRMCWT","UMJINEGAYTHCKDPRWZOFXQLBVS","TLIHMDFZXSGBJCOQVYNEWPKAUR","SKHGLCEYWRFAIBNPUXMDVOJZTQ","RJGFKBDXVQEZHAMOTWLCUNIYSP","QIFEJACWUPDYGZLNSVKBTMHXRO","PHEDIZBVTOCXFYKMRUJASLGWQN","OGDCHYAUSNBWEXJLQTIZRKFVPM","NFCBGXZTRMAVDWIKPSHYQJEUOL","MEBAFWYSQLZUCVHJORGXPIDTNK","LDAZEVXRPKYTBUGINQFWOHCSMJ","KCZYDUWQOJXSATFHMPEVNGBRLI","JBYXCTVPNIWRZSEGLODUMFAQKH","IAXWBSUOMHVQYRDFKNCTLEZPJG")
+    RotorInv[5, array] = array("QCYLXWENFTZOSMVJUDKGIARPHB","PBXKWVDMESYNRLUITCJFHZQOGA","OAWJVUCLDRXMQKTHSBIEGYPNFZ","NZVIUTBKCQWLPJSGRAHDFXOMEY","MYUHTSAJBPVKOIRFQZGCEWNLDX","LXTGSRZIAOUJNHQEPYFBDVMKCW","KWSFRQYHZNTIMGPDOXEACULJBV","JVREQPXGYMSHLFOCNWDZBTKIAU","IUQDPOWFXLRGKENBMVCYASJHZT","HTPCONVEWKQFJDMALUBXZRIGYS","GSOBNMUDVJPEICLZKTAWYQHFXR","FRNAMLTCUIODHBKYJSZVXPGEWQ","EQMZLKSBTHNCGAJXIRYUWOFDVP","DPLYKJRASGMBFZIWHQXTVNECUO","COKXJIQZRFLAEYHVGPWSUMDBTN","BNJWIHPYQEKZDXGUFOVRTLCASM","AMIVHGOXPDJYCWFTENUQSKBZRL","ZLHUGFNWOCIXBVESDMTPRJAYQK","YKGTFEMVNBHWAUDRCLSOQIZXPJ","XJFSEDLUMAGVZTCQBKRNPHYWOI","WIERDCKTLZFUYSBPAJQMOGXVNH","VHDQCBJSKYETXRAOZIPLNFWUMG","UGCPBAIRJXDSWQZNYHOKMEVTLF","TFBOAZHQIWCRVPYMXGNJLDUSKE","SEANZYGPHVBQUOXLWFMIKCTRJD","RDZMYXFOGUAPTNWKVELHJBSQIC")
+    
+    
+    function number charToByte(C:string) {
+        return toByte(C, 1)-65
+    }
+    
+    function string byteToChar(N) {
+        return toChar(N+65)
+    }
+    
+    
+    function string encode( C:string, RotorNum, Offset ) {
+        local Rot = Rotor[RotorNum, string]
+        
+        return Rot[ (charToByte(C) + Offset + 26)%26+1 ]
+        
+
+    }
+    
+    function string encodeInv( C:string, RotorNum, Offset ) {
+        local Rot = RotorInv[RotorNum, array][Offset+1, string]
+         #print(charToByte(C)+1,"oooo",Rot[ charToByte(C)+1 ],Rot,"yolo",RotorNum,Offset+1)
+        return Rot[ charToByte(C)+1 ]
+        
+    }   
+    
+    Wheels = "321"
+    Code = "CIL"
+    Scramble = "AD SH ZN EW RB TF YQ UK IG OJ"
+    
+    
+    Phase = 1
+    runOnTick(1)
+    Msg2Code = "CILCIL"
+    
+    
+}
+elseif(tickClk()) {
+    if(Phase == 1) {
+        Phase = 2
+        Char = 1
+        Msg2Code = Msg2Code:upper()
+        MsgCoded = ""
+        W1 = toByte(Code, 1)-65
+        W2 = toByte(Code, 2)-65
+        W3 = toByte(Code, 3)-65
+        SwitchTbl = array("A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z")
+        ScrambleTbl = Scramble:explode(" ")
+        for(I=1,ScrambleTbl:count()) {
+            local I1 = charToByte(ScrambleTbl[I, string][1])+1
+            local I2 = charToByte(ScrambleTbl[I, string][2])+1
+            SwitchTbl[I1, string] = ScrambleTbl[I, string][2]
+            SwitchTbl[I2, string] = ScrambleTbl[I, string][1]
+            
+        }
+        Msg2CodeScrambled = ""
+        IndexScramble = 1
+        
+    }
+    if(Phase == 2) {
+        while(perf() & IndexScramble <= Msg2Code:length()) {
+            Msg2CodeScrambled += SwitchTbl[charToByte(Msg2Code[IndexScramble])+1, string]
+            IndexScramble++
+        }
+        if(IndexScramble > Msg2Code:length()) {
+            Phase = 3
+        }
+        
+    }
+    if(Phase == 3) {
+        
+        while(perf() & Char <= Msg2Code:length()) {
+            
+                            
+            local C = Msg2CodeScrambled[Char]
+            
+            local A1 = encode(  C, toByte(Wheels,1)-48, W1 )
+            local A2 = encode( A1, toByte(Wheels,2)-48, W2 )
+            local A3 = encode( A2, toByte(Wheels,3)-48, W3 )
+            
+            local A4 = encode( A3, 6, 0 )      
+
+            local A5 = encodeInv( A4, toByte(Wheels,3)-48, W3 )
+            local A6 = encodeInv( A5, toByte(Wheels,2)-48, W2 )
+            local A7 = encodeInv( A6, toByte(Wheels,1)-48, W1 )
+            
+
+            MsgCoded += A7
+            
+            Char++    
+            W1++
+            if(W1 >= 26) {
+                W1 = 0
+                W2++
+                if(W2 >= 26) {
+                    W2 = 0    
+                    W3 = (W3+1)%26
+                }
+            }
+        }
+        if(Char > Msg2Code:length()) {
+            Phase = 4
+            MsgCodedScrambled = ""
+            IndexScramble = 1
+        }
+    }
+    if(Phase == 4) {
+        while(perf() & IndexScramble <= MsgCoded:length()) {
+            MsgCodedScrambled += SwitchTbl[charToByte(MsgCoded[IndexScramble])+1, string]
+            IndexScramble++
+        }
+        if(IndexScramble > MsgCoded:length()) {
+            print("-> "+MsgCodedScrambled)
+            Phase = 0
+            runOnTick(0)           
+        }
+    }
+}
+    

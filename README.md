@@ -34,3 +34,7 @@ solution in O(1).
 
 This is just a reimplementation of the *Diffie–Hellman key exchange* with
 *exponentiation by squaring*.
+
+### enigma
+
+Just a unifinished attempt to reimplement enigma in game.
