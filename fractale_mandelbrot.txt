@@ -1,0 +1,115 @@
+@name Prada 
+@inputs S:wirelink
+@outputs 
+@persist W H MaxIter White # Constantes 
+@persist Ticks X Y Index Iter [Z ComplexToAdd]:complex
+@persist WindowX WindowY WindowW WindowH 
+@trigger 
+
+if(tickClk())
+{
+    Ticks++
+    
+    while(perf())
+    {
+        
+        # Si on est dans un des bourgeons principaux, on a pas a tester le pixel
+        local SkipCalculus = 0 
+        if(Iter == 0) {
+        
+            local X = real(ComplexToAdd)
+            local Y = imag(ComplexToAdd)
+            local YSqr = Y^2
+            if( (X+1)^2+YSqr < 0.0625) {
+                SkipCalculus = 1
+            } else {
+            
+                local PSqr = (X-0.25)^2+YSqr
+                local P = sqrt(PSqr)
+                if(P-2*PSqr+0.25 > X) {
+                    SkipCalculus = 1
+                }
+            }
+        }
+        
+        # On fait le calcul de la suite
+        
+        Z = Z^2 + ComplexToAdd
+        
+        # Si la suite a toujours pas diverge (abs(Z) > 2) au bout de MaxIter iterations ou quelle a diverge
+        # on peut passer au pixel suivant
+        Iter++
+        if( abs(Z)>2 | SkipCalculus | Iter >= MaxIter)
+        {
+            
+            local C = White
+            # Bon si c'est blanc ca restera blanc...
+            if(!SkipCalculus | Iter >= MaxIter) {
+                C  = round(min(Iter/MaxIter*255,255))
+            }
+     
+            #On set en Highspeed variable l'ecran et on passe au pixel suivant
+            S[Index] =  C
+            Iter = 0
+            
+                        
+        
+            Index--
+            X--
+            if(X<0) {
+                Y--
+                X = W-1
+                if(Y<0) {
+                    runOnTick(0)
+                    setName( Ticks + "" )
+                    S[1048575] = S[1048575]+1 # Clk l'ecran
+                    S[1048572] = H
+                    S[1048573] = W
+                    print(Ticks + " ticks")
+                }
+            }
+            #On calcule une seule fois le complexe qu'on ajoutera dans la formule
+            ComplexToAdd = comp((X/W*2-1)*WindowW+WindowX,(Y/H*2-1)*WindowH+WindowY)
+            Z = ComplexToAdd
+        }
+    }
+    
+
+    
+}
+elseif(first())
+{
+    
+    local Temp = int( sqrt(786431+1)/5 ) # Max resolution
+    W = Temp
+    H = Temp
+        
+    # On demarre avec le dernier pixel
+    X = W-1
+    Y = H
+    Index = X + Y * W
+        
+    S[1048569] = 0 # colormode
+    S[1048572] = H
+    S[1048573] = W
+    S[1048574] = 1 # clear
+    
+    MaxIter = 100
+
+    White = 255
+    ComplexToAdd = comp(-2,-1.5)
+    interval(0)
+    
+    #Fenetre dans la fractale (zoom + pos)
+    WindowX = -1
+    WindowY = 0
+    WindowW = 3
+    WindowH = 3
+
+}
+elseif(clk())
+{
+    S[1048574] = 0
+    runOnTick(1)
+}    
+

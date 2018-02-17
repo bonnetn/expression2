@@ -37,4 +37,8 @@ This is just a reimplementation of the *Diffie–Hellman key exchange* with
 
 ### enigma
 
-Just a unifinished attempt to reimplement enigma in game.
+Just a unifinished attempt to reimplement *enigma* in game.
+
+### mandelbrot fractal
+
+Just an implementation of the *mandelbrot fractal*
