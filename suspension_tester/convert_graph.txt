@@ -1,0 +1,49 @@
+@persist GRAPH_Phase
+@persist GRAPH_I
+@persist GRAPH_Data:table
+@persist GRAPH_Graph:table
+@persist GRAPH_Callback:string
+@persist GRAPH_Min:vector2
+@persist GRAPH_Max:vector2
+@persist GRAPH_ResonanceFreq
+@persist GRAPH_Magnitude
+
+
+function graph_get( Data:table, Magnitude, Callback:string ) {
+    GRAPH_Phase = 1
+    GRAPH_I = 1
+    GRAPH_Callback = Callback
+    GRAPH_Graph = table()
+    GRAPH_Data = Data
+    GRAPH_Magnitude = Magnitude
+    GRAPH_Min = vec2(inf(), inf())
+    GRAPH_Max = -vec2(inf(), inf())
+    
+}
+
+function graph_tick() {
+    
+    if(GRAPH_Phase) {
+        
+        local K = GRAPH_Data:keys()[GRAPH_I, number]
+        local Z = GRAPH_Data[K, array][2,complex]
+        local N = GRAPH_Data[K, array][1,number]
+        
+        local Value = abs(Z/N)*4/GRAPH_Magnitude
+        
+        GRAPH_Graph[GRAPH_I, array] = array(K,Value)
+        if( max(GRAPH_Max:y(), Value) != GRAPH_Max:y() ) {
+            GRAPH_ResonanceFreq = K
+        }
+        GRAPH_Min = vec2( min(GRAPH_Min:x(), K), min(GRAPH_Min:y(), Value) )
+        GRAPH_Max = vec2( max(GRAPH_Max:x(), K), max(GRAPH_Max:y(), Value) )
+        
+        
+        GRAPH_I++
+        if(GRAPH_I > GRAPH_Data:count()) {
+            GRAPH_Phase = 0
+            GRAPH_Callback(GRAPH_Graph, GRAPH_Min, GRAPH_Max, GRAPH_ResonanceFreq)
+        }
+    }
+    
+}

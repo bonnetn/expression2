@@ -15,8 +15,14 @@ build it.
 
 ### acf_prediction
 
-This script uses Runge–Kutta methods to simulate the trajectory of a bullet shot
+This script uses *Runge–Kutta methods* to simulate the trajectory of a bullet shot
 by a cannon with a quadratic drag.
+
+
+### suspension tester
+
+This script takes a car, stimulate it, and then plot the Bode diagram of its
+suspension. In order to do that, it uses *FFT*.
 
 
 

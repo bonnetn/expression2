@@ -1,0 +1,41 @@
+@persist TFD_Data:array
+@persist TFD_K
+@persist TFD_Callback:string
+@persist TFD_I TFD_CurrentValue:complex
+@persist TFD_Phase
+
+@persist TFD_PI TFD_IMG:complex
+
+TFD_PI = pi()
+TFD_IMG = i()
+
+
+function tfd_get( Data:array, K, Callback:string ) {
+    
+    TFD_Data = Data
+    TFD_K = K
+    TFD_Callback = Callback
+    TFD_I=0
+    TFD_CurrentValue=comp()
+    TFD_Phase = 1
+}
+
+function tfd_tick() {
+    
+    while( TFD_Phase & perf() ) {
+        TFD_I++
+        
+        local Ang = -2*TFD_IMG*TFD_PI*TFD_K*(TFD_I-1)/TFD_Data:count()
+        #print(TFD_Data[TFD_I, number],TFD_CurrentValue)
+        #print(TFD_IMG,TFD_PI,TFD_K,(TFD_I-1),TFD_Data:count())
+        TFD_CurrentValue += TFD_Data[TFD_I, number] * exp( Ang )
+        
+        
+        if(TFD_I>=TFD_Data:count()) {
+            TFD_Phase = 0
+            TFD_Callback( TFD_K, TFD_CurrentValue )
+            
+        }
+    }
+    
+}

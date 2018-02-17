@@ -1,0 +1,235 @@
+@name 
+@inputs 
+@outputs 
+@persist E:entity
+@persist SIZE_BOX HEIGHT_BOX MAX_PULSE MIN_PULSE POINTS_COUNT MAGNITUDE MAX_SLICES
+@persist Wheels:array Seat:entity
+@persist Pulse Measures:table Iter Graph:table GraphMin:vector2 GraphMax:vector2 LastCurTime DT ResonancePulse
+@persist StimulationMagnitude StimulationPulse
+@trigger 
+@autoupdate
+
+if( first() ) {
+    
+    #include "suspension_tester/detection_box"
+    #include "suspension_tester/stimulator"
+    #include "suspension_tester/convert_graph"
+    #include "suspension_tester/plot"
+    
+    
+    
+    
+    # CONSTANTS
+    SIZE_BOX = 190                      # gunit
+    HEIGHT_BOX = 150                    # gunit
+    MAGNITUDE = 5                       # gunit
+    local Delta = 4                      # rad/s
+    
+    POINTS_COUNT = round(2*pi()/tickInterval() / Delta  )
+    MAX_SLICES = 50
+    
+    MIN_PULSE = 1/ POINTS_COUNT / tickInterval() * 2 * pi() # rad/s
+    MAX_PULSE = 1/tickInterval() * pi() # rad/s (according to the NyquistShannon sampling theorem ) Fmax/2 * 2pi
+    
+    MAX_PULSE = 100
+        
+    
+    runOnTick(1)    
+    runOnChat(1)
+    E = entity()
+    
+    # Create the holo of the detection box
+    detectionBox_init()
+    
+    
+    
+    function number logspace( StartW, EndW, X) {
+        local Startw_log = 10*log10( StartW )
+        local Endw_log = 10*log10( EndW )
+        local Cur_log = Startw_log * (1-X) + Endw_log * X
+        local Cur = 10^(Cur_log/10)
+        return Cur
+    }
+    
+    function number kToW( K ) {
+        return K / POINTS_COUNT / tickInterval() * 2 * pi()
+    }
+    
+    function number wToK( F ) {
+        return F * POINTS_COUNT * tickInterval() / 2 / pi()
+    }
+    
+    function number alignOnDeltaW( W ) {
+        local K = ceil(wToK(W))
+        return kToW(K)
+    }    
+    
+    function print_constants() {
+        local TXT = ""
+        TXT += "CONSTANTS:\n"
+        TXT += " - MAX_PULSE = " + MAX_PULSE + "rad/s\n"
+        TXT += " - MIN_PULSE = " + MIN_PULSE + "rad/s\n"
+        TXT += " - MAGNITUDE= " + MAGNITUDE + "gu\n"
+        TXT += " - DELTA W = " + round(kToW(1), 3)+ "rad/s\n"
+        TXT += " - TIME = " + POINTS_COUNT*tickInterval() + "*" + MAX_SLICES + "s\n"
+        
+        print(TXT)
+        
+    }
+
+    function phase4( G:table, Min:vector2, Max:vector2, FreqRes ) {
+        Graph = G
+        GraphMin = Min
+        GraphMax = Max
+ 
+        print("MAX: (W=" + FreqRes + "rad/s; G=" + Max:y() + " (" + round(10*log10(Max:y()),3)+"dB)")
+        local D = date()
+        fileWrite("suspension_testv2_" + D["year",number] + "-" + D["month",number] + "-" + D["day", number] + "_" + D["hour",number] + "-" + D["min",number] + "-" + D["sec",number] + ".txt" ,jsonEncode(G))
+        ResonancePulse = FreqRes
+        print("Drawing axises...")
+        plot_drawAxis( vec2(5), vec2(512-10), GraphMin, GraphMax, "onFinishDrawAxis" )
+    }
+            
+    function phase3_stimulate( I, Pulse ) {
+        Measures[Pulse, array][1, number] = I
+        
+        local K = round(wToK(Pulse))
+        local Ang = -2*i()*pi()*K*(I-1)/POINTS_COUNT
+        Measures[Pulse, array][2, complex] = Measures[Pulse, array][2, complex] + Seat:pos():z() * exp( Ang )
+        
+    }
+    
+    function phase3_onFinish() {
+        
+        Iter += 1/MAX_SLICES
+        if(Iter <=1 ) {
+            
+            
+            local W = logspace(MIN_PULSE,MAX_PULSE,Iter)
+            W = alignOnDeltaW(W)
+            
+            if( alignOnDeltaW(logspace(MIN_PULSE,MAX_PULSE,Iter-1/MAX_SLICES)) == W) {
+                phase3_onFinish()
+            } else {
+                Measures[W, array] = array()
+                setName("STIMULATING:\n- w = " + round(W,3) + "rad/s") 
+                stimulator_stimulate(W,MAGNITUDE,POINTS_COUNT,"phase3_stimulate","phase3_onFinish")
+            }
+        } else {
+            graph_get(Measures, MAGNITUDE, "phase4")
+        }
+            
+    }
+    
+    function launch_stimulation() {
+        Iter = -1/MAX_SLICES # so at the first iteration Iter=0
+        Measures = table()
+        
+        stimulator_place("phase3_onFinish")
+    }
+    
+    function phase2_seat( S:entity ) {
+        print(" - Found the seat\nSTIMULATING:")
+        Seat = S
+        launch_stimulation()
+        
+    }
+    
+    function phase1_wheels( R:array ) {
+        print(" - Found the wheels")
+        Wheels = R
+        stimulator_init(Wheels)
+        detectionBox_getSeat("phase2_seat")
+        
+    }
+    
+    function onFinishDrawAxis() 
+    {
+        print("Drawing points...")
+        plot_drawVerticalLine(ResonancePulse)
+        plot_drawHorizontalLine(GraphMax:y())
+        plot_drawPoints( Graph, "onFinishDrawPoints")
+        
+    }
+    function onFinishDrawPoints() 
+    {
+        print("Done!")
+        
+    }
+
+    function do_nothing(X,Y) {
+    }
+
+    function stimulate_placed() {
+        print("Placed")
+        stimulator_stimulate(StimulationPulse,StimulationMagnitude,inf(),"do_nothing","")
+    }
+
+    function stimulate_findwheels( R:array ) {
+        Wheels = R
+        print("Found the wheels")
+        stimulator_init(R)
+        stimulator_place("stimulate_placed")
+    }    
+    
+        
+} elseif( tickClk() ) {
+    
+    local C = curtime()
+    DT = C - LastCurTime
+    LastCurTime = C
+    
+    #print(DT/tickInterval())
+    
+    # Move the detection box on the E2
+    if( changed( E:pos() ) ) {
+        detectionBox_moveBox(E:pos(), SIZE_BOX, 380, HEIGHT_BOX)
+    }
+    
+    # THINK
+    
+    detectionBox_tick()
+    stimulator_tick()
+    graph_tick()
+    plot_tick()
+        
+
+} elseif( chatClk( owner() ) ) {
+
+    local LS = owner():lastSaid()
+
+    if( LS == "!test") {
+        hideChat(1)
+        print_constants()
+        print("PRE-OPERATIONS:")
+        stimulator_stop()
+        detectionBox_getWheels("phase1_wheels")    
+    }
+    
+    if( LS == "!draw") {
+        hideChat(1)
+        if(Graph:count() == 0) {
+            print("Cannot draw graph with 0 values...")
+        }
+        else {
+            print("Drawing axises...")
+            plot_drawAxis( vec2(5), vec2(512-10), GraphMin, GraphMax, "onFinishDrawAxis" )
+        }
+    }
+    
+    if( LS == "!stop") {
+        hideChat(1)
+        stimulator_stop()    
+    }
+    
+    if( LS:explode(" ")[1,string] == "!stimulate") {
+        hideChat(1)
+        StimulationMagnitude = LS:explode(" ")[3,string]:toNumber()
+        StimulationPulse = LS:explode(" ")[2,string]:toNumber()
+        
+         
+        detectionBox_getWheels("stimulate_findwheels")     
+    }
+    
+
+}

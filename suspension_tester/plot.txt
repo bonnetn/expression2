@@ -1,0 +1,285 @@
+@inputs EGP:wirelink 
+@persist PLOT_I PLOT_POSX PLOT_POSY PLOT_W PLOT_H
+@persist PLOT_MINX PLOT_MAXX
+@persist PLOT_MINY PLOT_MAXY
+@persist PLOT_Callback:string
+@persist PLOT_Phase
+@persist PLOT_Data:table
+@persist PLOT_Iter
+@persist DRAW_SCALE_Callback:string
+
+    
+PLOT_POSX = 10
+PLOT_POSY = 10
+PLOT_W = 512 - PLOT_POSX * 2 
+PLOT_H = 512 - PLOT_POSY * 2 
+
+PLOT_MINX = 0.1
+PLOT_MAXX = 2000
+
+PLOT_MINY = 0.001
+PLOT_MAXY = 4
+
+
+function vector2 plot_getGraphPos( V:vector2 ) {
+    V = vec2(V:x(),1-V:y())
+    return vec2( V:x() * PLOT_W + PLOT_POSX, V:y() * PLOT_H + PLOT_POSY )
+}
+
+function vector2 plot_plot( X,Y ) {
+    X = (log10(X) - log10(PLOT_MINX))/(log10(PLOT_MAXX)-log10(PLOT_MINX))
+    Y = (log10(Y) - log10(PLOT_MINY))/(log10(PLOT_MAXY)-log10(PLOT_MINY))
+    return plot_getGraphPos(vec2(X,Y))
+}
+
+function plot_drawGraphBox() {
+    PLOT_I++
+    EGP:egpLine(PLOT_I, plot_getGraphPos(vec2()),plot_getGraphPos(vec2(1,0)))
+    EGP:egpColor(PLOT_I, vec())
+    
+    PLOT_I++
+    EGP:egpLine(PLOT_I, plot_getGraphPos(vec2()),plot_getGraphPos(vec2(0,1)))
+    EGP:egpColor(PLOT_I, vec())
+    
+    PLOT_I++
+    EGP:egpLine(PLOT_I, plot_getGraphPos(vec2(1)),plot_getGraphPos(vec2(1,0)))
+    EGP:egpColor(PLOT_I, vec())
+    
+    PLOT_I++
+    EGP:egpLine(PLOT_I, plot_getGraphPos(vec2(1)),plot_getGraphPos(vec2(0,1)))
+    EGP:egpColor(PLOT_I, vec())
+    
+}
+
+function plot_drawBackground() {
+    PLOT_I++
+    EGP:egpBox(PLOT_I,vec2(512/2),vec2(512))
+    EGP:egpColor(PLOT_I,vec(255,0,0))
+    
+    PLOT_I++
+    EGP:egpBox(PLOT_I,vec2(512/2),vec2(512) - vec2(6))
+    EGP:egpColor(PLOT_I,vec(255))
+}
+
+function plot_drawScaleX(Cllbk:string) {
+    
+    PLOT_Phase = 1
+    DRAW_SCALE_Callback = Cllbk
+
+    local L10 = log10(PLOT_MINX)
+    local X = floor( 10^( L10-floor(L10) ) )-1
+    local Y = floor(L10)
+    
+
+    PLOT_Iter = Y*9 + X
+ 
+}
+function plot_drawScaleY(Cllbk:string) {
+
+    PLOT_Phase = 2
+    DRAW_SCALE_Callback = Cllbk
+
+    local L10 = log10(PLOT_MINY)
+    local X = floor( 10^( L10-floor(L10) ) )-1
+    local Y = floor(L10)
+    
+
+    PLOT_Iter = Y*9 + X
+ 
+}
+
+function plot_drawVerticalLine( X ) {
+    local P1 = plot_plot(X, PLOT_MINY)
+    local P2= plot_plot(X, PLOT_MAXY)
+    PLOT_I++
+    EGP:egpLine(PLOT_I, P1,P2)
+    EGP:egpColor(PLOT_I, vec(255,0,0))
+    
+    local Pos = plot_plot(X,PLOT_MINY)
+    
+    PLOT_I++
+    local Length = 2/100
+    local TextSize = PLOT_H*0.025*1.5
+    EGP:egpText(PLOT_I, round(X,2)+"", Pos - vec2(0,PLOT_W*Length*1.25))
+    EGP:egpAlign(PLOT_I,1,2)
+    EGP:egpSize( PLOT_I, TextSize)
+    EGP:egpColor(PLOT_I,vec(50,0,0))
+
+    
+}
+
+function plot_drawHorizontalLine( Y ) {
+    local P1 = plot_plot(PLOT_MINX,Y)
+    local P2= plot_plot(PLOT_MAXX,Y)
+    PLOT_I++
+    EGP:egpLine(PLOT_I, P1,P2)
+    EGP:egpColor(PLOT_I, vec(255,0,0))
+    
+  
+    PLOT_I++
+    local Pos = plot_plot(PLOT_MINX,Y)
+    local Length = 2/100
+    local TextSize = PLOT_H*0.025*1.5
+    EGP:egpText(PLOT_I, round(Y,2)+"", Pos + vec2(PLOT_W*Length*1.25,0))
+    EGP:egpAlign(PLOT_I,0,1)
+    EGP:egpSize( PLOT_I, TextSize)
+    EGP:egpColor(PLOT_I, vec(50,0,0))
+
+
+}
+
+
+function plot_drawScaleTick() {
+    
+    if(PLOT_Phase == 1 | PLOT_Phase == 2) {
+        
+        local Coef = PLOT_Iter%9
+        local Pow = (PLOT_Iter-Coef)/9
+        Coef++
+    
+        
+        local Length = ( 1 + (Coef==1) )/100
+        local N = Coef*10^Pow
+        if(PLOT_Phase == 1) {
+            PLOT_I++
+            local Pos = plot_plot(N,PLOT_MINY)
+            EGP:egpLine(PLOT_I,Pos,Pos+vec2(0,-PLOT_H*Length))
+            EGP:egpColor(PLOT_I,vec())
+            
+            if(Coef == 1 & N != PLOT_MINX) {
+                PLOT_I++
+                local TextSize = PLOT_H*0.025
+                EGP:egpText(PLOT_I, N+"", Pos - vec2(0,PLOT_W*Length*1.25))
+                EGP:egpAlign(PLOT_I,1,2)
+                EGP:egpSize( PLOT_I, TextSize)
+                EGP:egpColor(PLOT_I,vec())
+            }
+            
+        } elseif(PLOT_Phase == 2) {
+        
+            
+        
+            PLOT_I++
+            local Pos = plot_plot(PLOT_MINX,N)
+            if(Coef == 1 & Pow == 0) {
+                EGP:egpLine(PLOT_I,Pos,Pos+vec2(PLOT_W,0))
+                EGP:egpColor(PLOT_I,vec(0,0,0))
+            } else {
+                EGP:egpLine(PLOT_I,Pos,Pos+vec2(PLOT_W*Length,0))
+                EGP:egpColor(PLOT_I,vec())
+            }
+            
+            
+            
+            
+            if(Coef == 1 & N != PLOT_MINY) {
+                PLOT_I++
+                local TextSize = PLOT_H*0.025
+                EGP:egpText(PLOT_I, N+"", Pos + vec2(PLOT_W*Length*1.25,0))
+                EGP:egpAlign(PLOT_I,0,1)
+                EGP:egpSize( PLOT_I, TextSize)
+                EGP:egpColor(PLOT_I,vec())
+            }
+            
+        }
+    
+    
+        PLOT_Iter++
+        
+        
+        local L10 = 0
+        if(PLOT_Phase == 1) {
+            L10 = log10(PLOT_MAXX)
+        } elseif(PLOT_Phase == 2) {
+            L10 = log10(PLOT_MAXY)
+        }
+        local X = floor( 10^( L10-floor(L10) ) )-1
+        local Y = floor(L10)
+        if(PLOT_Iter > Y*9+X) {
+            PLOT_Phase = 0
+            DRAW_SCALE_Callback()
+        }
+    } elseif(PLOT_Phase == 3) {
+        PLOT_Iter++
+        
+        local Freq =PLOT_Data[PLOT_Iter,array][1,number]
+        local Value =PLOT_Data[PLOT_Iter,array][2,number]
+        
+        local P = plot_plot(Freq,Value)
+        local Size = 0.01
+        
+        PLOT_I++
+        EGP:egpLine(PLOT_I, P+vec2(PLOT_H*Size,0), P-vec2(PLOT_H*Size,0))
+        EGP:egpColor(PLOT_I, vec(0,0,255))
+        PLOT_I++
+        EGP:egpLine(PLOT_I, P+vec2(0,PLOT_H*Size), P-vec2(0,PLOT_H*Size))
+        EGP:egpColor(PLOT_I, vec(0,0,255))
+                
+        if(PLOT_Iter >= PLOT_Data:count()) {
+            PLOT_Phase = 0
+            PLOT_Callback()
+        }
+    }
+    
+}
+
+
+function plot_onFinishedDrawingScaleX() {
+    plot_drawScaleY("plot_onFinishedDrawingScaleY")
+}
+
+function plot_onFinishedDrawingScaleY() {
+    PLOT_Callback()
+}
+
+function plot_tick() {
+    plot_drawScaleTick()
+}
+
+
+function plot_drawAxis( Pos:vector2, Size:vector2, Min:vector2, Max:vector2, Callback:string ) {
+    EGP:egpClear()
+    PLOT_I = 0
+    
+    # Offset the graph so we can see the top of the curve
+    local Y = Max:y()
+    local Ylog = floor(log10(Y))
+    local Coef = round(Y/ 10^Ylog)+1
+    Y = Coef*10^Ylog
+    Max = vec2(Max:x(),Y)
+    
+    PLOT_Callback = Callback
+    
+    
+    
+       
+    PLOT_POSX = Pos:x()
+    PLOT_POSY = Pos:y()
+    
+    PLOT_W = Size:x()
+    PLOT_H = Size:y()
+    
+    PLOT_MINX = Min:x()
+    PLOT_MAXX = Max:x()
+    
+    PLOT_MINY = Min:y()
+    PLOT_MAXY = Max:y()
+    
+    plot_drawBackground()
+    plot_drawGraphBox()
+    plot_drawScaleX("plot_onFinishedDrawingScaleX")
+    
+
+}
+
+
+
+
+function plot_drawPoints( Data:table, Callback:string ) {
+    PLOT_Phase = 3
+    PLOT_Callback = Callback
+    PLOT_Iter = 0
+    PLOT_Data = Data
+
+}
+

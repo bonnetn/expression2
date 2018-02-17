@@ -1,0 +1,70 @@
+@persist STIMULATOR_Pulse
+@persist STIMULATOR_Magnitude
+@persist STIMULATOR_OnTick:string
+@persist STIMULATOR_OnFinish:string
+
+@persist STIMULATOR_Angle
+@persist STIMULATOR_Phase
+@persist STIMULATOR_Duration STIMULATOR_Counter
+
+@persist [STIMULATOR_Origin STIMULATOR_Dest]:vector
+
+#include "suspension_tester/manipulator"
+
+function stimulator_init( W:array ) {
+    manipulator_init(W)
+}
+
+function stimulator_stop() {
+    STIMULATOR_Phase = 0
+}
+
+function stimulator_stimulate( Pulse, Magn, Duration, OnTick:string, OnFinish:string  ) {
+    STIMULATOR_Pulse = Pulse
+    STIMULATOR_Magnitude = Magn/2
+    STIMULATOR_OnTick = OnTick
+    STIMULATOR_OnFinish = OnFinish
+    STIMULATOR_Duration = Duration
+    STIMULATOR_Counter = 0
+    STIMULATOR_Phase = 1
+}
+
+function stimulator_place( OnFinish:string ) {
+    STIMULATOR_Phase = 2
+    STIMULATOR_OnFinish = OnFinish
+    STIMULATOR_Counter = 0
+    STIMULATOR_Origin = manipulator_getPos()
+    STIMULATOR_Dest = detectionBox_getCenter()
+}
+
+function stimulator_tick() {   
+    
+    if( STIMULATOR_Phase == 1 ) {
+        STIMULATOR_Angle += tickInterval() * STIMULATOR_Pulse
+        STIMULATOR_Angle = STIMULATOR_Angle%360
+        #manipulator_setPos( detectionBox_getCenter() + vec(0,0,sinr(STIMULATOR_Angle))*STIMULATOR_Magnitude )
+        manipulator_setPos( detectionBox_getCenter() + vec(0,0,sinr(curtime()*STIMULATOR_Pulse))*STIMULATOR_Magnitude ) 
+        STIMULATOR_Counter++
+        
+        STIMULATOR_OnTick(STIMULATOR_Counter,STIMULATOR_Pulse )
+        
+        if(STIMULATOR_Duration == STIMULATOR_Counter) {
+            STIMULATOR_Phase = 0
+            STIMULATOR_OnFinish()
+            
+        }
+    } elseif( STIMULATOR_Phase == 2 ) {
+        local Dist = STIMULATOR_Dest:distance(STIMULATOR_Origin)
+        STIMULATOR_Counter += tickInterval() * 50
+        STIMULATOR_Counter = clamp(STIMULATOR_Counter,0,Dist)
+        local X = STIMULATOR_Counter
+        
+        manipulator_setPos( (STIMULATOR_Dest- STIMULATOR_Origin):normalized()*X + STIMULATOR_Origin )
+        
+        if( STIMULATOR_Counter >= Dist) {
+            STIMULATOR_Phase = 0
+            STIMULATOR_OnFinish()
+        }
+    }
+    manipulator_tick()
+}

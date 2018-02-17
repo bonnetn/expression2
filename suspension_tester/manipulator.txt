@@ -1,0 +1,41 @@
+@persist MANIPULATOR_Wheels:array
+@persist MANIPULATOR_Pos:vector
+@persist MANIPULATOR_LocalPos:table
+
+
+
+function vector manipulator_getPos() {
+    local Pos = vec()
+    foreach(K,V:entity=MANIPULATOR_Wheels) {
+        Pos += V:pos()
+    }
+    Pos /= MANIPULATOR_Wheels:count()
+    return Pos
+}
+
+function table manipulator_getLocalPos() {
+    local LP = table()
+    foreach(K,V:entity=MANIPULATOR_Wheels) {
+        LP[V:id(), vector] = V:pos()-MANIPULATOR_Pos
+    }
+    return LP
+}
+
+
+
+function manipulator_init( Wheels:array ) {
+    MANIPULATOR_Wheels = Wheels    
+    MANIPULATOR_Pos = manipulator_getPos()
+    MANIPULATOR_LocalPos = manipulator_getLocalPos()
+}
+
+function manipulator_setPos( Pos:vector ) {
+    foreach(K,V:entity=MANIPULATOR_Wheels) {
+        V:setPos( Pos + MANIPULATOR_LocalPos[V:id(), vector] )
+    }
+}
+
+function manipulator_tick() {
+
+
+}

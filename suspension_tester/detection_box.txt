@@ -1,0 +1,85 @@
+@persist [ZONE_Min ZONE_Max]:vector 
+@persist ZONE_Phase
+@persist ZONE_FindResult:array ZONE_Iter ZONE_Wheels:array ZONE_Callback:string
+
+function detectionBox_init() {
+    
+    holoCreate(1)
+    holoMaterial(1, "models/wireframe")
+    holoColor(1,vec(255))
+    holoAng(1,ang())
+    
+    holoCreate(2)
+    holoMaterial(2, "models/wireframe")
+    holoColor(2,vec(255))
+    holoAng(1,ang())
+    
+    
+    ZONE_Phase = 0
+    
+}
+
+
+function vector detectionBox_getCenter() {
+    return (ZONE_Max+ZONE_Min)/2
+}
+
+function detectionBox_moveBox( EPos:vector, W, W2, H ) {
+    
+    ZONE_Min = EPos - vec(W,W2,0)/2
+    ZONE_Max = EPos + vec(W,W2,H*2)/2
+    
+    local Center = detectionBox_getCenter()
+    
+    holoPos(1, Center )
+    holoScaleUnits(1, ZONE_Max-ZONE_Min )
+    holoPos(2, Center )
+    holoScaleUnits(2, -ZONE_Max+ZONE_Min )
+   
+}
+
+
+function array detectionBox_getWheels( Callback:string ) {
+    ZONE_Phase = 1
+    ZONE_Callback = Callback
+}
+function array detectionBox_getSeat( Callback:string ) {
+    ZONE_Phase = 3
+    ZONE_Callback = Callback
+}
+
+function detectionBox_tick() {
+    
+    if( ZONE_Phase == 1 & findCanQuery() ) {
+        findByClass("prop_physics")
+        findInBox(ZONE_Min,ZONE_Max)
+        ZONE_FindResult = findToArray()
+        ZONE_Phase = 2
+        ZONE_Wheels = array()
+        ZONE_Iter = 1
+    } elseif( ZONE_Phase == 2 ) {
+        local Prop = ZONE_FindResult[ZONE_Iter, entity]
+        local Model = Prop:model()
+        if( Model:find("wheel") | Model:find("tire") | Model:find("off-road") ) {
+            ZONE_Wheels:pushEntity(Prop)
+        }
+        ZONE_Iter++
+        if(ZONE_Iter > ZONE_FindResult:count()) {
+           ZONE_Phase = 0
+            ZONE_Callback(ZONE_Wheels)
+        } 
+    } elseif( ZONE_Phase == 3 & findCanQuery() ) {
+        findInBox(ZONE_Min,ZONE_Max)
+        ZONE_FindResult = findToArray()
+        ZONE_Phase = 4
+        ZONE_Iter = 1
+    } elseif( ZONE_Phase == 4 ) {
+        local Prop = ZONE_FindResult[ZONE_Iter, entity]
+        if( Prop:isVehicle() ) {
+            ZONE_Phase = 0 
+            ZONE_Callback(Prop)
+        }
+        ZONE_Iter++ 
+    }
+    
+}
